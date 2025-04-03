@@ -22,7 +22,7 @@ async function translate(text) {
   });
 
   const json = await res.json();
-  return json.choices[0].message.content.trim();
+  return json.choices?.[0]?.message?.content?.trim?.() || "⚠️ No translation returned.";
 }
 
 function addTranslateButtons() {
@@ -33,15 +33,28 @@ function addTranslateButtons() {
     const textElement = tweet.querySelector('div[lang]');
     if (!textElement) return;
 
-    const btn = document.createElement('button');
-    btn.innerText = '🌍 Translate';
-    btn.className = 'tradux-btn';
-    btn.style.marginTop = '5px';
-    btn.style.cursor = 'pointer';
+    const grokButton = tweet.querySelector('button[aria-label="Grok actions"]');
+    if (!grokButton || !grokButton.parentElement) return;
 
-    btn.onclick = async () => {
-      btn.disabled = true;
-      btn.innerText = '⏳ Translating...';
+    const translateBtn = document.createElement('button');
+    translateBtn.className = 'tradux-btn';
+    translateBtn.innerText = '🌍';
+    translateBtn.title = 'Translate';
+    translateBtn.style.background = 'none';
+    translateBtn.style.border = 'none';
+    translateBtn.style.cursor = 'pointer';
+    translateBtn.style.marginRight = '8px';
+    translateBtn.style.fontSize = '16px';
+    translateBtn.style.color = 'inherit';
+    translateBtn.style.lineHeight = '1';
+    translateBtn.style.padding = '0';
+    translateBtn.style.display = 'flex';
+    translateBtn.style.alignItems = 'center';
+
+    translateBtn.onclick = async (e) => {
+      e.stopPropagation();
+      translateBtn.disabled = true;
+      translateBtn.innerText = '⏳';
       const translation = await translate(textElement.innerText);
       const result = document.createElement('div');
       result.innerText = translation;
@@ -53,11 +66,12 @@ function addTranslateButtons() {
       result.style.lineHeight = '1.4';
       result.style.backgroundColor = 'rgba(255,255,255,0.1)';
       result.style.color = '#f1f1f1';
-      btn.after(result);
-      btn.remove();
+      textElement.parentElement.appendChild(result);
+      translateBtn.innerText = '🌍';
+      translateBtn.disabled = false;
     };
 
-    textElement.parentElement.appendChild(btn);
+    grokButton.parentElement.insertBefore(translateBtn, grokButton);
   });
 }
 
