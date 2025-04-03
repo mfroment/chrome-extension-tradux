@@ -1,0 +1,25 @@
+{
+    "manifest_version": 3,
+    "name": "TraduX",
+    "version": "0.1",
+    "description": "Traduit les tweets japonais en français",
+    "permissions": ["storage", "scripting", "activeTab"],
+    "host_permissions": ["*://x.com/*"],
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "icon.png"
+      }
+    },
+    "background": {
+      "service_worker": "background.js"
+    },
+    "content_scripts": [
+      {
+        "matches": ["*://x.com/*"],
+        "js": ["content.js"],
+        "run_at": "document_idle"
+      }
+    ]
+  }
+  
