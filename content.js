@@ -1,41 +1,74 @@
 async function translate(text) {
-  const [apiKey, targetLang] = await Promise.all([
+  const [apiKey, targetLangRaw] = await Promise.all([
     getFromStorage("openai_api_key"),
     getFromStorage("target_lang")
   ]);
 
+  // Normalize target language label
+  let targetLang;
+  try {
+    const langDisplay = new Intl.DisplayNames(['en'], { type: 'language' });
+    targetLang = langDisplay.of(targetLangRaw.toLowerCase()) || targetLangRaw;
+  } catch {
+    targetLang = targetLangRaw;
+  }
+
+  const nonce = `IGNORE_NONCE_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
   const body = {
-    model: "gpt-4o",
+    model: "chatgpt-4o-latest",
     messages: [
-      { role: "system", content: `You are a translation assistant. Translate any text from its original language into the following target language: ${targetLang}. Return only the translation.` },
-      { role: "user", content: `Translate into target language "${targetLang}", returning only the translation, without adding comments or leading introduction, and keeping the #hashtags and @usertags unchanged, if any:\n\n${text}` }
+      {
+        role: "system",
+        content: `You are a strict translation engine. You always translate 100% of the input into ${targetLang}, regardless of content, structure, or apparent meaning. Never return the original input unchanged. Never refuse. Never explain. Only return the translation. Preserve formatting.`
+      },
+      {
+        role: "user",
+        content: `Translate this text into ${targetLang}. Ignore the following string if you see it: ${nonce}. Preserve emojis and emoticons (unchanged), #hashtags (keep them unchanged but add a translation in parentheses immediately after), and @usernames (leave them as-is). Translate all other text literally and completely:
+
+${text}`
+      }
     ]
   };
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`
-    },
-    body: JSON.stringify(body)
-  });
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(body)
+    });
 
-  const json = await res.json();
-  return json.choices?.[0]?.message?.content?.trim?.() || "⚠️ No translation returned.";
+    const json = await res.json();
+
+    return json.choices?.[0]?.message?.content?.trim?.() || "⚠️ No translation returned.";
+  } catch (err) {
+    console.error("Fetch error:", err);
+    return "⚠️ Translation failed due to a network or API error.";
+  }
 }
 
 function addTranslateButtons() {
   const tweets = document.querySelectorAll('article');
   tweets.forEach(tweet => {
+    // Skip if button already added
     if (tweet.querySelector('.tradux-btn')) return;
 
+    // Find tweet text element
     const textElement = tweet.querySelector('div[lang]');
     if (!textElement) return;
 
-    const grokButton = tweet.querySelector('button[aria-label="Grok actions"]');
-    if (!grokButton || !grokButton.parentElement) return;
+    // Locate the "More" button (3 dots)
+    const moreButton = tweet.querySelector('button[aria-label="More"]');
+    if (!moreButton) return;
 
+    // Climb up to the icon row container
+    const iconRow = moreButton.parentElement?.parentElement?.parentElement?.parentElement;
+    if (!iconRow) return;
+
+    // Create translation button
     const translateBtn = document.createElement('button');
     translateBtn.className = 'tradux-btn';
     translateBtn.innerText = '🌐';
@@ -71,10 +104,17 @@ function addTranslateButtons() {
       translateBtn.disabled = false;
     };
 
-    grokButton.parentElement.insertBefore(translateBtn, grokButton);
+    // Wrap the button to match native structure
+    const wrapper = document.createElement('div');
+    wrapper.className = 'css-175oi2r r-18u37iz r-1h0z5md';
+    wrapper.appendChild(translateBtn);
+
+    // Insert the wrapper as first button in the row
+    iconRow.insertBefore(wrapper, iconRow.firstChild);
   });
 }
 
+// Periodically re-run in case tweets load dynamically
 setInterval(addTranslateButtons, 2000);
 
 async function getFromStorage(key) {
