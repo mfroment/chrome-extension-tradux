@@ -38,7 +38,7 @@ function addTranslateButtons() {
 
     const translateBtn = document.createElement('button');
     translateBtn.className = 'tradux-btn';
-    translateBtn.innerText = '🌍';
+    translateBtn.innerText = '🌐';
     translateBtn.title = 'Translate';
     translateBtn.style.background = 'none';
     translateBtn.style.border = 'none';
