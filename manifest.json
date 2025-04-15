@@ -17,6 +17,7 @@
   "content_scripts": [
     {
       "matches": ["*://x.com/*"],
+      "exclude_matches": ["*://x.com/notifications*"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }
