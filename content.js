@@ -51,6 +51,9 @@ ${text}`
 }
 
 function addTranslateButtons() {
+  // Don't run on the notifications page
+  if (location.pathname.startsWith("/notifications")) return;
+
   const tweets = document.querySelectorAll('article');
   tweets.forEach(tweet => {
     // Skip if button already added
