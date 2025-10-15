@@ -1,10 +1,13 @@
 {
   "manifest_version": 3,
   "name": "TraduX",
-  "version": "0.2",
+  "version": "0.3",
   "description": "Translate tweets to your target language using OpenAI",
   "permissions": ["storage", "scripting", "activeTab"],
-  "host_permissions": ["*://x.com/*"],
+  "host_permissions": [
+      "https://api.openai.com/*",
+      "*://x.com/*"
+    ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
