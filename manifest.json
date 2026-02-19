@@ -1,18 +1,18 @@
 {
   "manifest_version": 3,
   "name": "TraduX",
-  "version": "0.5",
-  "description": "Translate tweets to your target language using OpenAI",
+  "version": "1.0.0",
+  "description": "Translate X posts using external LLM APIs",
   "permissions": ["storage", "scripting", "activeTab"],
   "host_permissions": [
-      "https://api.openai.com/*",
-      "*://x.com/*"
-    ],
+    "https://api.openai.com/*",
+    "https://api.anthropic.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "*://x.com/*"
+  ],
   "action": {
     "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icon_light.png"
-    }
+    "default_icon": { "16": "icon_light.png" }
   },
   "background": {
     "service_worker": "background.js"

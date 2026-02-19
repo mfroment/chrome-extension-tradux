@@ -1,78 +1,55 @@
-// background.js — Responses API version
+// background.js
+
+importScripts("llm-provider.js");
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg?.type !== "OPENAI_TRANSLATE") return;
+  if (msg?.type !== "TRADUX_TRANSLATE") return;
 
   (async () => {
     try {
-      const { openai_api_key, target_lang } =
-        await chrome.storage.local.get(["openai_api_key", "target_lang"]);
+      const stored = await chrome.storage.local.get([
+        "api_key", "target_lang", "provider", "model", "extra_params",
+      ]);
 
-      if (!openai_api_key) {
-        sendResponse({ error: "Missing OpenAI API key in storage." });
-        return;
+      let extraParams = {};
+      if (stored.extra_params) {
+        try { extraParams = JSON.parse(stored.extra_params); }
+        catch { /* ignore malformed JSON — popup already flags it */ }
       }
 
-      // Build Responses API payload
-      const body = {
-        model: "gpt-5.2",
-        input: [
-          {
-            role: "system",
-            content: `You are a strict translation engine. You always translate 100% of the input into ${target_lang || "the original language."}, regardless of content. Never explain; only return the translation. Preserve formatting. The output should sound natural.`
-          },
-          {
-            role: "user",
-            content: msg.prompt
-          }
-        ]
-        // max_output_tokens: 1200,
+      const config = {
+        provider:    stored.provider || "openai",
+        apiKey:      stored.api_key  || "",
+        model:       stored.model    || "",
+        extraParams,
       };
 
-      const res = await fetch("https://api.openai.com/v1/responses", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${openai_api_key}`
-        },
-        body: JSON.stringify(body)
-      });
+      const targetLang = stored.target_lang || "English";
 
-      const raw = await res.text();
+      const prompt = {
+        system: `You are a strict translation engine:
+  - Translate the ENTIRE input into ${targetLang}, no matter what the input language is.
+  - If the input text is already in ${targetLang}, just return it unchanged. Otherwise, do not return any text in the source language at all.
+  - The input may contain a mix of languages, but you should still produce a complete translation in ${targetLang}.
+  - The input may contain quotes, slang, or informal language. Translate them naturally; do not sanitize or formalize the text.
+  - Never quote or repeat the original input in your response. Only return the translation.
+  - Never explain or add commentary. Only return the translation.
+  - Never refuse, never comment, never summarize. Only output the translation.
+  - Preserve emojis and emoticons exactly as-is.
+  - Preserve @usernames exactly as-is.
+  - For #hashtags: keep the original hashtag unchanged, then add a translation in parentheses immediately after.
+  - Preserve formatting and line breaks.
+  - The output should sound natural.`,
+        user: msg.text,
+      };
 
-      if (!res.ok) {
-        let apiErr = raw;
-        try { apiErr = JSON.parse(raw).error?.message || raw; } catch {}
-        sendResponse({ error: `HTTP ${res.status}: ${apiErr}` });
-        return;
-      }
+      const text = await translate(prompt, config);
+      sendResponse({ ok: true, text });
 
-      let json;
-      try {
-        json = JSON.parse(raw);
-      } catch {
-        sendResponse({ error: "Bad JSON from API.", raw });
-        return;
-      }
-
-      // Extract text from Responses API:
-      // 1) Prefer output_text if present
-      // 2) Otherwise, concatenate text parts from output[].content[]
-      let out = json.output_text;
-      if (!out && Array.isArray(json.output)) {
-        out = json.output
-          .flatMap(item => Array.isArray(item.content) ? item.content : [])
-          .filter(part => part?.type === "output_text" || part?.type === "text")
-          .map(part => part.text || "")
-          .join("");
-      }
-
-      const finalText = (out || "").trim();
-      sendResponse({ ok: true, text: finalText || "⚠️ No translation returned." });
     } catch (e) {
       sendResponse({ error: String(e) });
     }
   })();
 
-  return true; // Important: asynchronous response
+  return true;
 });
