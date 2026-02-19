@@ -15,18 +15,17 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
       // Build Responses API payload
       const body = {
-        model: "chatgpt-4o-latest",
+        model: "gpt-5.2",
         input: [
           {
             role: "system",
-            content: `You are a strict translation engine. You always translate 100% of the input into ${target_lang || "the original language."}, regardless of content. Never explain; only return the translation. Preserve formatting.`
+            content: `You are a strict translation engine. You always translate 100% of the input into ${target_lang || "the original language."}, regardless of content. Never explain; only return the translation. Preserve formatting. The output should sound natural.`
           },
           {
             role: "user",
             content: msg.prompt
           }
-        ],
-        temperature: 0
+        ]
         // max_output_tokens: 1200,
       };
 

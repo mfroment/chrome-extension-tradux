@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TraduX",
-  "version": "0.4",
+  "version": "0.5",
   "description": "Translate tweets to your target language using OpenAI",
   "permissions": ["storage", "scripting", "activeTab"],
   "host_permissions": [
